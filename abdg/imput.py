@@ -33,22 +33,27 @@ class ABDGImput(ABDGraph):
         - array of indices: array of categorical feature indices
         - list of labels: column labels of a pandas dataframe
 
+    n_iter: int (default=4)
+        Number of iterations of reconstructing missing values
 
     continous_distribution: 'normal' or 'laplace'
         The distribution using for sampling (reconstruct) continous variables
         after oversampling
 
-    alpha: float
+    alpha: float (defalut=0.6)
         A threshold for continuous data reconstuction that allows to change
         between considering all instances within the interval or just those
         belonging to the same class [1]
 
-    L: float
+    L: float (default=0.5)
         The factor that defines a width within the distribution using to reconstruct
         continuous data [1]
 
-    verbose: int
-        If greather than 0, enable verbose output
+    update_step: int (default=10)
+        Number of the data samples with missing values which will be treated before
+        updating graph weights.
+        Note, this parameter has a significant influence on computation time. Choosing
+        it is trade-off between model quality and time of reconstruction of missing values.
 
     random_state : int, or None, optional (default=None)
         If int, ``random_state`` is the seed used by the random number
@@ -66,7 +71,7 @@ class ABDGImput(ABDGraph):
     """
 
     def __init__(self, discretization='caim', categorical_features='auto', n_iter=4,
-                 alpha=0.6, L=0.5, sampling='normal',
+                 continous_distribution='normal', alpha=0.6, L=0.5,
                  update_step=10, random_state=None):
         super().__init__(discretization=discretization,
                          categorical_features=categorical_features)
@@ -75,18 +80,19 @@ class ABDGImput(ABDGraph):
         self.L = L
         self.random_state = random_state
         self.update_step = update_step
-        if sampling == 'normal':
+        if continous_distribution == 'normal':
             self.f_sample = np.random.normal
-        elif sampling == 'laplace':
+        elif continous_distribution == 'laplace':
             self.f_sample = np.random.laplace
         else:
-            raise SamplingParameterException('Invalid sampling parameter! Only "laplace" or "normal" are allowed.')
+            raise SamplingParameterException('Invalid "continous_distribution" parameter! \
+                                             Only "laplace" or "normal" are allowed.')
 
     def fit(self, X, y):
         super().fit(X, y)
         return self
 
-    def predict(self, X, y, refit=False, n_iter=None, alpha=None, L=None, sampling=None):
+    def predict(self, X, y, refit=False, n_iter=None, alpha=None, L=None):
         if isinstance(X, pd.DataFrame):
             self.pdflag = True
             self.pd_index = X.index.values
